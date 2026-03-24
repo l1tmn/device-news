@@ -1005,8 +1005,10 @@ def generate_html(products: list[dict], report_date: str, new_keys: set = None) 
         (p.get("category") or "").split("/")[0].strip()
         for p in products if p.get("category")
     ))
+    def _trunc(s: str, n: int = 35) -> str:
+        return s[:n] + "…" if len(s) > n else s
     cat_opts = "\n    ".join(
-        f'<option value="{_esc(c).lower()}">{_esc(c)}</option>' for c in categories
+        f'<option value="{_esc(c).lower()}">{_esc(_trunc(c))}</option>' for c in categories
     )
 
     css = """\
@@ -1034,7 +1036,7 @@ header .meta { font-size: 13px; color: #999; }
 .filters select, .filters input {
   font-size: 13px; padding: 6px 10px; border: 1px solid var(--border);
   border-radius: 4px; background: var(--bg-card); color: var(--text); cursor: pointer;
-  max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+  width: auto;
 }
 .filters select:focus, .filters input:focus { outline: none; border-color: var(--gold); }
 .filters input { width: 240px; }
