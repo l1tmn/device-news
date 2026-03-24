@@ -1,0 +1,9 @@
+backups/
+__pycache__/
+*.pyc
+scraper.log
+pdf/
+reports/
+imported_products.json
+import_pdfs.py
+patch3.py
