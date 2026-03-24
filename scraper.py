@@ -972,16 +972,33 @@ def generate_html(products: list[dict], report_date: str, new_keys: set = None) 
     genre_order = [g for g, _ in GENRE_RULES] + ["\u305d\u306e\u4ed6"]
     _report_week = _week_monday(_report_date_obj)
 
-    # All products go into weeks based on best available date:
-    #   announced (manufacturer date) > found_date (crawl discovery date)
+    # Detect initial scan date (the found_date with the most products)
+    from collections import Counter as _Counter
+    _fd_counts = _Counter()
+    for p in products:
+        fd = _parse_date(p.get("found_date") or "")
+        if fd:
+            _fd_counts[fd] += 1
+    _initial_date = max(_fd_counts, key=_fd_counts.get) if _fd_counts else None
+
+    # Split products into 3 buckets:
+    #   1) Weekly: has manufacturer announced date, OR found after initial scan
+    #   2) Archive: found on initial scan date without manufacturer date
+    #   3) Undated: no date at all (rare)
     dated_products = []
+    archive_products = []
     undated_products = []
     for p in products:
-        bd = _best_date_obj(p)
-        if bd:
-            dated_products.append((p, bd))
+        ann = _parse_date(p.get("announced") or "")
+        fd  = _parse_date(p.get("found_date") or "")
+        if ann:
+            dated_products.append((p, ann))               # real manufacturer date
+        elif fd and fd != _initial_date:
+            dated_products.append((p, fd))                 # found after initial scan
+        elif fd:
+            archive_products.append(p)                     # initial scan, no mfr date
         else:
-            undated_products.append(p)
+            undated_products.append(p)                     # no date at all
 
     weeks_sorted = sorted(
         set(_week_monday(bd) for _, bd in dated_products),
@@ -990,7 +1007,11 @@ def generate_html(products: list[dict], report_date: str, new_keys: set = None) 
     by_week: dict = {w: defaultdict(list) for w in weeks_sorted}
     for p, bd in dated_products:
         by_week[_week_monday(bd)][classify_genre(p)].append(p)
-    # Undated products (no announced AND no found_date) — should be rare
+    # Archive products (initial scan without manufacturer dates)
+    archive_by_genre: dict = defaultdict(list)
+    for p in archive_products:
+        archive_by_genre[classify_genre(p)].append(p)
+    # Undated (no date at all)
     undated_by_genre: dict = defaultdict(list)
     for p in undated_products:
         undated_by_genre[classify_genre(p)].append(p)
@@ -1257,6 +1278,48 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
                 f'  <div class="date-header {hdr_cls}" onclick="toggleDate(this)">\n'
                 f'    <span>{_week_label(week_mon)}</span>{today_badge}\n'
                 f'    <span class="date-count">{len(week_prods)} \u4ef6</span>\n'
+                f'    <span class="date-toggle"></span>\n'
+                f'  </div>\n'
+                f'  <div class="date-body">\n{genre_html}\n  </div>\n'
+                f'</div>\n'
+            )
+
+        # ── Archive section (initial scan products without manufacturer dates) ──
+        if archive_products:
+            genre_parts = []
+            for genre in genre_order:
+                gprods = archive_by_genre.get(genre, [])
+                if not gprods:
+                    continue
+                genre_id = _esc(genre).replace(" ", "_").replace("/", "_")
+                rows_html = build_rows(gprods)
+                genre_parts.append(
+                    f'<div class="genre-section" id="g_archive_{genre_id}">\n'
+                    f'  <div class="genre-header" onclick="toggleGenre(this)">\n'
+                    f'    <span>{_esc(genre)}</span>\n'
+                    f'    <span class="genre-count">{len(gprods)} 件</span>\n'
+                    f'    <span class="genre-toggle"></span>\n'
+                    f'  </div>\n'
+                    f'  <div class="genre-body">\n'
+                    f'    <table>\n'
+                    f'      <thead><tr>\n'
+                    f'        <th>メーカー</th><th>品番</th>'
+                    f'<th>説明 (JA)</th>\n'
+                    f'        <th>カテゴリ</th>'
+                    f'<th>パッケージ</th><th>発表日</th>\n'
+                    f'      </tr></thead>\n'
+                    f'      <tbody>\n{rows_html}\n      </tbody>\n'
+                    f'    </table>\n'
+                    f'  </div>\n'
+                    f'</div>\n'
+                )
+            genre_html = "\n".join(genre_parts)
+            _init_label = _initial_date.isoformat() if _initial_date else "不明"
+            parts.append(
+                f'<div class="date-section collapsed" id="date_archive">\n'
+                f'  <div class="date-header past-header" onclick="toggleDate(this)">\n'
+                f'    <span>アーカイブ（初回取込 {_init_label}）</span>\n'
+                f'    <span class="date-count">{len(archive_products)} 件</span>\n'
                 f'    <span class="date-toggle"></span>\n'
                 f'  </div>\n'
                 f'  <div class="date-body">\n{genre_html}\n  </div>\n'
