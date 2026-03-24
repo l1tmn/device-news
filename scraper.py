@@ -861,14 +861,42 @@ def classify_genre(p: dict) -> str:
 
 # Keywords that flag a product as especially audio-relevant (★ highlight)
 _AUDIO_STAR_PATTERNS: list[str] = [
-    r"\baudio\b",
     r"silent.?switch",
-    r"low.?noise.*ldo", r"ultra.?low.?noise", r"vldo",
-    r"low.?jitter", r"jitter.?attenu", r"femto",
-    r"isolated.*dc.?dc", r"isolat.*power", r"isolated.*reg",
-    r"precision.*op.?amp", r"low.?noise.*op.?amp",
+    r"low.?noise.*ldo", r"ultra.?low.?noise.*ldo",
+    r"low.?jitter", r"jitter.?attenu", r"jitter.?clean",
+    r"\baudio\b",
+    r"isolated.*power", r"isolat.*dc.?dc", r"絶縁",
+    r"precision.*op.?amp", r"low.?noise.*op.?amp", r"low.?noise.*amplif",
     r"high.?precision.*amp",
+    r"audio.*codec", r"audio.*dac", r"audio.*adc",
+    r"headphone.*amp", r"ヘッドホン",
+    r"class.?d.*amp",
+    r"low.?phase.?noise",
+    r"femto.?second", r"フェムト",
+    r"ocxo", r"tcxo",
 ]
+
+
+def extract_opamp_specs(p: dict) -> str:
+    """Extract Vos and GBW from op-amp description text. Returns HTML string."""
+    genre = classify_genre(p)
+    if "オペアンプ" not in genre and "計装アンプ" not in genre:
+        return ""
+    text = f"{p.get('description', '')} {p.get('category', '')}"
+    specs = []
+    # GBW: e.g. "5MHz", "10 MHz", "5GHz"
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(MHz|GHz|kHz)", text, re.IGNORECASE)
+    if m:
+        specs.append(f"GBW: {m.group(1)}{m.group(2)}")
+    # Vos: e.g. "100µV", "5 µV", "100μV", "ゼロドリフト", "zero-drift"
+    m2 = re.search(r"(\d+(?:\.\d+)?)\s*[µμu]V", text)
+    if m2:
+        specs.append(f"Vos: {m2.group(1)}\u00b5V")
+    elif re.search(r"(zero.?drift|ゼロドリフト|チョッパ)", text, re.IGNORECASE):
+        specs.append("Vos: \u2248 0 (zero-drift)")
+    if not specs:
+        return ""
+    return '<span class="opamp-specs">' + " | ".join(specs) + "</span>"
 
 
 def is_audio_star(p: dict) -> bool:
@@ -944,12 +972,13 @@ def generate_html(products: list[dict], report_date: str, new_keys: set = None) 
     genre_order = [g for g, _ in GENRE_RULES] + ["\u305d\u306e\u4ed6"]
     _report_week = _week_monday(_report_date_obj)
 
-    # Split products into dated vs undated
+    # All products go into weeks based on best available date:
+    #   announced (manufacturer date) > found_date (crawl discovery date)
     dated_products = []
     undated_products = []
     for p in products:
         bd = _best_date_obj(p)
-        if bd is not None:
+        if bd:
             dated_products.append((p, bd))
         else:
             undated_products.append(p)
@@ -961,7 +990,7 @@ def generate_html(products: list[dict], report_date: str, new_keys: set = None) 
     by_week: dict = {w: defaultdict(list) for w in weeks_sorted}
     for p, bd in dated_products:
         by_week[_week_monday(bd)][classify_genre(p)].append(p)
-    # Undated products go in a separate dict
+    # Undated products (no announced AND no found_date) — should be rare
     undated_by_genre: dict = defaultdict(list)
     for p in undated_products:
         undated_by_genre[classify_genre(p)].append(p)
@@ -1005,6 +1034,7 @@ header .meta { font-size: 13px; color: #999; }
 .filters select, .filters input {
   font-size: 13px; padding: 6px 10px; border: 1px solid var(--border);
   border-radius: 4px; background: var(--bg-card); color: var(--text); cursor: pointer;
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis;
 }
 .filters select:focus, .filters input:focus { outline: none; border-color: var(--gold); }
 .filters input { width: 240px; }
@@ -1078,6 +1108,10 @@ tr.hidden { display: none; }
 }
 .part-link:hover { color: var(--gold); text-decoration: underline; }
 .desc-cell { color: var(--text); }
+.opamp-specs {
+  display: block; margin-top: 4px; font-size: 11px; font-weight: 600;
+  color: #2c7be5; font-family: "SF Mono", "Cascadia Code", monospace;
+}
 .cat-cell  { color: var(--text-dim); font-size: 12px; }
 .pkg-cell  { font-family: monospace; font-size: 12px; color: var(--text-dim); }
 .date-announced { font-size: 12px; color: var(--text); font-weight: 500; white-space: nowrap; }
@@ -1133,7 +1167,7 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
                 f'<tr data-mfr="{mfr.lower()}" data-cat="{_esc(cat).lower()}" class="{row_cls}">'
                 f'<td><span class="mfr-badge {_badge_cls(mfr)}">{mfr}</span></td>'
                 f'<td>{part_html}</td>'
-                f'<td class="desc-cell">{desc}</td>'
+                f'<td class="desc-cell">{desc}{extract_opamp_specs(p)}</td>'
                 f'<td class="cat-cell">{cat}</td>'
                 f'<td class="pkg-cell">{pkg}</td>'
                 f'<td>{date_html}</td>'
@@ -1227,7 +1261,7 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
                 f'</div>\n'
             )
 
-        # ── "日付不明" section for products without any date ──
+        # ── Undated section (products with no date at all — should be rare) ──
         if undated_products:
             genre_parts = []
             for genre in genre_order:
@@ -1240,16 +1274,16 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
                     f'<div class="genre-section" id="g_undated_{genre_id}">\n'
                     f'  <div class="genre-header" onclick="toggleGenre(this)">\n'
                     f'    <span>{_esc(genre)}</span>\n'
-                    f'    <span class="genre-count">{len(gprods)} \u4ef6</span>\n'
+                    f'    <span class="genre-count">{len(gprods)} 件</span>\n'
                     f'    <span class="genre-toggle"></span>\n'
                     f'  </div>\n'
                     f'  <div class="genre-body">\n'
                     f'    <table>\n'
                     f'      <thead><tr>\n'
-                    f'        <th>\u30e1\u30fc\u30ab\u30fc</th><th>\u54c1\u756a</th>'
-                    f'<th>\u8aac\u660e (JA)</th>\n'
-                    f'        <th>\u30ab\u30c6\u30b4\u30ea</th>'
-                    f'<th>\u30d1\u30c3\u30b1\u30fc\u30b8</th><th>\u767a\u8868\u65e5</th>\n'
+                    f'        <th>メーカー</th><th>品番</th>'
+                    f'<th>説明 (JA)</th>\n'
+                    f'        <th>カテゴリ</th>'
+                    f'<th>パッケージ</th><th>発表日</th>\n'
                     f'      </tr></thead>\n'
                     f'      <tbody>\n{rows_html}\n      </tbody>\n'
                     f'    </table>\n'
@@ -1260,8 +1294,8 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
             parts.append(
                 f'<div class="date-section collapsed" id="date_undated">\n'
                 f'  <div class="date-header past-header" onclick="toggleDate(this)">\n'
-                f'    <span>\u65e5\u4ed8\u4e0d\u660e\uff08\u521d\u56de\u30b9\u30ad\u30e3\u30f3\u6642\u306e\u88fd\u54c1\uff09</span>\n'
-                f'    <span class="date-count">{len(undated_products)} \u4ef6</span>\n'
+                f'    <span>日付不明</span>\n'
+                f'    <span class="date-count">{len(undated_products)} 件</span>\n'
                 f'    <span class="date-toggle"></span>\n'
                 f'  </div>\n'
                 f'  <div class="date-body">\n{genre_html}\n  </div>\n'
@@ -1305,11 +1339,116 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
         '  });\n'
         '  document.getElementById("countBadge").textContent = vis + " \u4ef6";\n'
         '}\n'
+        '// Column width persistence\n'
+        '(function(){\n'
+        '  const KEY = "dn-col-widths";\n'
+        '  function saveWidths(){\n'
+        '    const ths = document.querySelectorAll("thead tr:first-child th");\n'
+        '    if(!ths.length) return;\n'
+        '    const first = document.querySelector("thead tr");\n'
+        '    if(!first) return;\n'
+        '    const ws={}; first.querySelectorAll("th").forEach((th,i)=>{ws[i]=th.offsetWidth});\n'
+        '    localStorage.setItem(KEY, JSON.stringify(ws));\n'
+        '  }\n'
+        '  function restoreWidths(){\n'
+        '    const s = localStorage.getItem(KEY);\n'
+        '    if(!s) return;\n'
+        '    try{\n'
+        '      const ws = JSON.parse(s);\n'
+        '      document.querySelectorAll("thead tr").forEach(row=>{\n'
+        '        row.querySelectorAll("th").forEach((th,i)=>{\n'
+        '          if(ws[i]) th.style.width = ws[i]+"px";\n'
+        '        });\n'
+        '      });\n'
+        '    }catch(e){}\n'
+        '  }\n'
+        '  restoreWidths();\n'
+        '  const obs = new ResizeObserver(()=>{ clearTimeout(obs._t); obs._t=setTimeout(saveWidths,500); });\n'
+        '  document.querySelectorAll("thead th").forEach(th => obs.observe(th));\n'
+        '})();\n'
         '</script>\n'
         '</body>\n</html>\n'
     )
 
     return "\n".join(parts)
+
+
+# ─── Password protection (XOR encryption) ────────────────────────────────────
+
+REPORT_PASSWORD = "brise2026"   # ← チーム共有パスワード（変更可）
+
+
+def protect_html(raw_html: str) -> str:
+    """Encrypt HTML with password so the page requires login to view.
+
+    Uses Blob URL redirect instead of document.write() to avoid CSS leakage
+    from the gate page into the decrypted report.
+    """
+    import hashlib
+    import base64
+
+    key = hashlib.sha256(REPORT_PASSWORD.encode()).digest()
+    body_bytes = raw_html.encode("utf-8")
+    encrypted = bytes(b ^ key[i % len(key)] for i, b in enumerate(body_bytes))
+    encoded = base64.b64encode(encrypted).decode("ascii")
+
+    return (
+        '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        '<title>デバイスニュース</title>\n'
+        '<style>\n'
+        '*{box-sizing:border-box;margin:0;padding:0}\n'
+        'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans",sans-serif;'
+        'display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f5f5f5}\n'
+        '.gate{background:#fff;padding:48px;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,.08);'
+        'text-align:center;max-width:360px;width:90%}\n'
+        '.gate h2{font-size:20px;color:#1a1a1a;margin-bottom:6px}\n'
+        '.gate p{font-size:13px;color:#888;margin-bottom:20px}\n'
+        '.gate input{width:100%;padding:12px;font-size:15px;border:1px solid #ddd;'
+        'border-radius:6px;margin-bottom:14px;box-sizing:border-box}\n'
+        '.gate input:focus{outline:none;border-color:#C5A55A}\n'
+        '.gate button{width:100%;padding:12px;background:#C5A55A;color:#fff;border:none;'
+        'border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:.04em}\n'
+        '.gate button:hover{background:#b8953e}\n'
+        '.gate .err{color:#e74c3c;font-size:13px;margin-top:8px;display:none}\n'
+        '</style></head><body>\n'
+        '<div class="gate" id="gate">\n'
+        '  <h2>📡 デバイスニュース</h2>\n'
+        '  <p>パスワードを入力してください</p>\n'
+        '  <input type="password" id="pw" placeholder="パスワード" '
+        'onkeydown="if(event.key===\'Enter\')doLogin()" autofocus>\n'
+        '  <button onclick="doLogin()">ログイン</button>\n'
+        '  <p class="err" id="err">パスワードが違います</p>\n'
+        '</div>\n'
+        '<script>\n'
+        f'const D="{encoded}";\n'
+        'async function sha256(s){const b=await crypto.subtle.digest("SHA-256",'
+        'new TextEncoder().encode(s));return new Uint8Array(b)}\n'
+        'async function dec(pw){const k=await sha256(pw);const r=atob(D);'
+        'const b=new Uint8Array(r.length);for(let i=0;i<r.length;i++)'
+        'b[i]=r.charCodeAt(i)^k[i%k.length];return new TextDecoder().decode(b)}\n'
+        'function showReport(html){\n'
+        '  var doc=new DOMParser().parseFromString(html,"text/html");\n'
+        '  document.head.innerHTML=doc.head.innerHTML;\n'
+        '  document.body.innerHTML=doc.body.innerHTML;\n'
+        '  document.body.removeAttribute("style");\n'
+        '  document.body.className="";\n'
+        '  document.body.querySelectorAll("script").forEach(function(old){\n'
+        '    var s=document.createElement("script");s.textContent=old.textContent;\n'
+        '    old.parentNode.replaceChild(s,old);\n'
+        '  });\n'
+        '}\n'
+        'async function doLogin(){const pw=document.getElementById("pw").value;\n'
+        '  try{const h=await dec(pw);\n'
+        '    if(h.includes("<!DOCTYPE")||h.includes("<html")){\n'
+        '      localStorage.setItem("dn-pw",pw);showReport(h);}\n'
+        '    else{document.getElementById("err").style.display="block"}\n'
+        '  }catch(e){document.getElementById("err").style.display="block"}}\n'
+        '(async()=>{const s=localStorage.getItem("dn-pw");if(s){try{const h=await dec(s);\n'
+        '  if(h.includes("<!DOCTYPE")||h.includes("<html")){showReport(h)}\n'
+        '}catch(e){localStorage.removeItem("dn-pw")}}})();\n'
+        '</script></body></html>\n'
+    )
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -1379,15 +1518,17 @@ def run():
     log.info(f"Total products in DB for report: {len(all_products)}")
 
     html = generate_html(all_products, today, new_keys)
+    protected = protect_html(html)
+
     report_path = REPORTS_DIR / f"{today}.html"
     with open(report_path, "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(protected)
     log.info(f"Report saved: {report_path}")
 
     # index.html for GitHub Pages
     index_path = REPORTS_DIR / "index.html"
     with open(index_path, "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(protected)
 
     _git_backup(today, len(new_keys))
 
