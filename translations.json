@@ -726,5 +726,11 @@
   "Low Voltage, 2.4Ω 4:1 Multiplexer in 2mm × 2mm LGA Package": "低電圧、2.4Ω 4:1 マルチプレクサ、2mm × 2mm LGA パッケージ",
   "Diode for 1W/1mW Class Rectifier": "1W/1mW級整流器用ダイオード",
   "Switching Power Supply Control IC for Qusai-Resonant Fly-Back AC/DC Converter": "Qusai共振フライバックAC/DCコンバータ用スイッチング電源制御IC",
-  "Unidirectional (Dual)": "単方向 (デュアル)"
+  "Unidirectional (Dual)": "単方向 (デュアル)",
+  "Automotive stand-alone or I2C-controlled bidirectional, iFET buck-boost battery charger": "車載用スタンドアロンまたは I2C 制御の双方向 iFET 昇降圧バッテリ充電器",
+  "Self-biased high frequency QR flyback converter with integrated GaN (65W) and low standby power": "GaN (65W) を内蔵し、スタンバイ電力が低い自己バイアス高周波 QR フライバック コンバータ",
+  "Radiation-hardened, QMLV, 3V to 6.3V input, 400mA, switched-capacitor voltage inverter with LDO": "耐放射線性、QMLV、3V～6.3V入力、400mA、LDO付きスイッチトキャパシタ電圧インバータ",
+  "Automotive 40ns high-speed push-pull comparator": "車載用40ns高速プッシュプルコンパレータ",
+  "Low-quiescent current, 4A buck-boost converters with I2C interface": "I2C インターフェースを備えた低自己消費電流、4A 昇降圧コンバータ",
+  "80V, 100% duty-cycle capable, dual-channel, functional safety synchronous buck controller": "80V、100% デューティサイクル対応、デュアルチャネル、機能安全同期降圧コントローラ"
 }

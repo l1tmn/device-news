@@ -934,9 +934,14 @@
     "Renesas::Renesas Introduces New AnalogPAK Program": "2026-03-24",
     "Renesas::Renesas Collaborates with Intel on Best-": "2026-03-24",
     "Renesas::Renesas Introduces Power Management with": "2026-03-24",
-    "Renesas::Renesas to Acquire Transphorm to Expand ": "2026-03-24"
+    "Renesas::Renesas to Acquire Transphorm to Expand ": "2026-03-24",
+    "TI::UCG28836": "2026-03-25",
+    "TI::TPS7H1301-SP": "2026-03-25",
+    "TI::TLV3211-Q1": "2026-03-25",
+    "TI::TPS63820": "2026-03-25",
+    "TI::LM5137F": "2026-03-25"
   },
-  "last_run": "2026-03-24T10:23:03.114591",
+  "last_run": "2026-03-25T10:08:44.594507",
   "products": {
     "TI::MUX809-Q1": {
       "manufacturer": "TI",
@@ -4186,7 +4191,7 @@
     "TI::BQ25692-Q1": {
       "manufacturer": "TI",
       "part": "BQ25692-Q1",
-      "description": "Automotive stand-alone or I²C-controlled 40V bidirectional buck-boost charger with power path",
+      "description": "Automotive stand-alone or I2C-controlled bidirectional, iFET buck-boost battery charger",
       "category": "Battery charger ICs",
       "package": "WQFN-HR",
       "url": "https://www.ti.com/product/BQ25692-Q1",
@@ -7663,7 +7668,7 @@
       "manufacturer": "TI",
       "part": "BQ25858B-Q1",
       "description": "Automotive stand-alone or I²C controlled 70V bidirectional buck-boost controller",
-      "category": "DC/DC controllers / Battery charger ICs",
+      "category": "Battery charger ICs / DC/DC controllers",
       "package": "VQFN",
       "url": "https://www.ti.com/product/BQ25858B-Q1",
       "announced": null,
@@ -9253,6 +9258,61 @@
       "announced": null,
       "key": "Renesas::Renesas to Acquire Transphorm to Expand ",
       "found_date": "2026-03-24"
+    },
+    "TI::UCG28836": {
+      "manufacturer": "TI",
+      "part": "UCG28836",
+      "description": "Self-biased high frequency QR flyback converter with integrated GaN (65W) and low standby power",
+      "category": "AC/DC converters",
+      "package": "VQFN",
+      "url": "https://www.ti.com/product/UCG28836",
+      "announced": null,
+      "key": "TI::UCG28836",
+      "found_date": "2026-03-25"
+    },
+    "TI::TPS7H1301-SP": {
+      "manufacturer": "TI",
+      "part": "TPS7H1301-SP",
+      "description": "Radiation-hardened, QMLV, 3V to 6.3V input, 400mA, switched-capacitor voltage inverter with LDO",
+      "category": "DC/DC converters",
+      "package": "CFP",
+      "url": "https://www.ti.com/product/TPS7H1301-SP",
+      "announced": null,
+      "key": "TI::TPS7H1301-SP",
+      "found_date": "2026-03-25"
+    },
+    "TI::TLV3211-Q1": {
+      "manufacturer": "TI",
+      "part": "TLV3211-Q1",
+      "description": "Automotive 40ns high-speed push-pull comparator",
+      "category": "Comparators",
+      "package": "SOT-SC70",
+      "url": "https://www.ti.com/product/TLV3211-Q1",
+      "announced": null,
+      "key": "TI::TLV3211-Q1",
+      "found_date": "2026-03-25"
+    },
+    "TI::TPS63820": {
+      "manufacturer": "TI",
+      "part": "TPS63820",
+      "description": "Low-quiescent current, 4A buck-boost converters with I2C interface",
+      "category": "DC/DC converters",
+      "package": "DSBGA",
+      "url": "https://www.ti.com/product/TPS63820",
+      "announced": null,
+      "key": "TI::TPS63820",
+      "found_date": "2026-03-25"
+    },
+    "TI::LM5137F": {
+      "manufacturer": "TI",
+      "part": "LM5137F",
+      "description": "80V, 100% duty-cycle capable, dual-channel, functional safety synchronous buck controller",
+      "category": "DC/DC controllers",
+      "package": "",
+      "url": "https://www.ti.com/product/LM5137F",
+      "announced": null,
+      "key": "TI::LM5137F",
+      "found_date": "2026-03-25"
     }
   }
 }
