@@ -965,12 +965,17 @@ def generate_html(products: list[dict], report_date: str, new_keys: set = None) 
             return fd
         return None
 
-    def _week_label(mon: _date) -> str:
-        sun = mon + _td(days=6)
-        return f"{mon.strftime('%Y/%m/%d')} \u301c {sun.strftime('%m/%d')} \u306e\u9031"
+    def _month_key(d: _date) -> str:
+        """Return 'YYYY-MM' string for grouping by month."""
+        return d.strftime("%Y-%m")
 
-    genre_order = [g for g, _ in GENRE_RULES] + ["\u305d\u306e\u4ed6"]
-    _report_week = _week_monday(_report_date_obj)
+    def _month_label(ym: str) -> str:
+        """'2026-03' → '2026年3月'"""
+        y, m = ym.split("-")
+        return f"{y}年{int(m)}月"
+
+    genre_order = [g for g, _ in GENRE_RULES] + ["その他"]
+    _report_month = _month_key(_report_date_obj)
 
     # Detect initial bulk-import dates: any found_date with > 50 products
     # (the first few runs pull the entire backlog from manufacturer sites)
@@ -1001,13 +1006,13 @@ def generate_html(products: list[dict], report_date: str, new_keys: set = None) 
         else:
             undated_products.append(p)                     # no date at all
 
-    weeks_sorted = sorted(
-        set(_week_monday(bd) for _, bd in dated_products),
+    months_sorted = sorted(
+        set(_month_key(bd) for _, bd in dated_products),
         reverse=True,
     ) if dated_products else []
-    by_week: dict = {w: defaultdict(list) for w in weeks_sorted}
+    by_month: dict = {m: defaultdict(list) for m in months_sorted}
     for p, bd in dated_products:
-        by_week[_week_monday(bd)][classify_genre(p)].append(p)
+        by_month[_month_key(bd)][classify_genre(p)].append(p)
     # Archive products (initial scan without manufacturer dates)
     archive_by_genre: dict = defaultdict(list)
     for p in archive_products:
@@ -1235,20 +1240,18 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
             '<p>\u672c\u65e5\u306f\u65b0\u305f\u306a\u88fd\u54c1\u306f\u691c\u51fa\u3055\u308c\u307e\u305b\u3093\u3067\u3057\u305f\u3002</p></div>\n'
         )
     else:
-        for week_mon in weeks_sorted:
-            week_prods = [p for p, _ in dated_products
-                          if _week_monday(_best_date_obj(p)) == week_mon]
-            is_current = week_mon == _report_week
+        for ym in months_sorted:
+            month_prods = [p for p, bd in dated_products if _month_key(bd) == ym]
+            is_current = ym == _report_month
             hdr_cls    = "today-header" if is_current else "past-header"
             sec_cls    = ""             if is_current else " collapsed"
-            today_badge = ' <span class="date-today-badge">今週</span>' if is_current else ""
-            date_key   = week_mon.isoformat()
-            date_id    = date_key.replace("-", "")
+            today_badge = ' <span class="date-today-badge">今月</span>' if is_current else ""
+            date_id    = ym.replace("-", "")
 
-            # Genre sub-sections for this week
+            # Genre sub-sections for this month
             genre_parts = []
             for genre in genre_order:
-                gprods = by_week[week_mon].get(genre, [])
+                gprods = by_month[ym].get(genre, [])
                 if not gprods:
                     continue
                 genre_id  = _esc(genre).replace(" ", "_").replace("/", "_")
@@ -1257,16 +1260,16 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
                     f'<div class="genre-section" id="g_{date_id}_{genre_id}">\n'
                     f'  <div class="genre-header" onclick="toggleGenre(this)">\n'
                     f'    <span>{_esc(genre)}</span>\n'
-                    f'    <span class="genre-count">{len(gprods)} \u4ef6</span>\n'
+                    f'    <span class="genre-count">{len(gprods)} 件</span>\n'
                     f'    <span class="genre-toggle"></span>\n'
                     f'  </div>\n'
                     f'  <div class="genre-body">\n'
                     f'    <table>\n'
                     f'      <thead><tr>\n'
-                    f'        <th>\u30e1\u30fc\u30ab\u30fc</th><th>\u54c1\u756a</th>'
-                    f'<th>\u8aac\u660e (JA)</th>\n'
-                    f'        <th>\u30ab\u30c6\u30b4\u30ea</th>'
-                    f'<th>\u30d1\u30c3\u30b1\u30fc\u30b8</th><th>\u767a\u8868\u65e5</th>\n'
+                    f'        <th>メーカー</th><th>品番</th>'
+                    f'<th>説明 (JA)</th>\n'
+                    f'        <th>カテゴリ</th>'
+                    f'<th>パッケージ</th><th>発表日</th>\n'
                     f'      </tr></thead>\n'
                     f'      <tbody>\n{rows_html}\n      </tbody>\n'
                     f'    </table>\n'
@@ -1277,8 +1280,8 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
             parts.append(
                 f'<div class="date-section{sec_cls}" id="date_{date_id}">\n'
                 f'  <div class="date-header {hdr_cls}" onclick="toggleDate(this)">\n'
-                f'    <span>{_week_label(week_mon)}</span>{today_badge}\n'
-                f'    <span class="date-count">{len(week_prods)} \u4ef6</span>\n'
+                f'    <span>{_month_label(ym)}</span>{today_badge}\n'
+                f'    <span class="date-count">{len(month_prods)} 件</span>\n'
                 f'    <span class="date-toggle"></span>\n'
                 f'  </div>\n'
                 f'  <div class="date-body">\n{genre_html}\n  </div>\n'
