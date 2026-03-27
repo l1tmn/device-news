@@ -1185,7 +1185,12 @@ tr.audio-star td:first-child { border-left: 3px solid var(--gold); }
                 date_html = "\u2014"
             star      = is_audio_star(p)
             star_html = '<span class="star-badge">\u2605</span>' if star else ""
-            is_new    = new_keys and p.get("key") in new_keys
+            # NEW badge: found_date or announced date == today
+            _fd = _parse_date(found_raw)
+            _ann = _parse_date(announced_raw)
+            is_new = (_fd == _report_date_obj) or (_ann == _report_date_obj)
+            if new_keys and p.get("key") in new_keys:
+                is_new = True
             new_html  = ' <span class="new-badge">NEW</span>' if is_new else ""
             part_html = (
                 f'<a class="part-link" href="{_esc(url)}" target="_blank" rel="noopener">{star_html}{part}{new_html}</a>'
