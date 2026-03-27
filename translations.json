@@ -752,5 +752,7 @@
   "1200V, 10A, 3-pin THD, Silicon-carbide (SiC) SBD for Automotive": "1200V、10A、3ピンTHD、車載用炭化ケイ素（SiC）SBD",
   "1200V, 10A, 3-pin THD, Silicon-carbide (SiC) SBD": "1200V、10A、3ピンTHD、炭化ケイ素（SiC）SBD",
   "1200V, 5A, 3-pin THD, Silicon-carbide (SiC) SBD for Automotive": "1200V、5A、3ピンTHD、車載用炭化ケイ素（SiC）SBD",
-  "1200V, 5A, 3-pin THD, Silicon-carbide (SiC) SBD": "1200V、5A、3ピンTHD、炭化ケイ素（SiC）SBD"
+  "1200V, 5A, 3-pin THD, Silicon-carbide (SiC) SBD": "1200V、5A、3ピンTHD、炭化ケイ素（SiC）SBD",
+  "22V 8A buck-boost converter": "22V 8A 昇降圧コンバータ",
+  "3V to 65V, 3.5A synchronous step-down converter optimized for power density and low EMI": "電力密度と低EMI向けに最適化された3V～65V、3.5A同期降圧コンバータ"
 }
